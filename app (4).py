@@ -84,15 +84,15 @@ def decode_qr_from_pil(pil_image: Image.Image) -> str | None:
 # STREAMLIT UI
 # ---------------------------------------
 st.set_page_config(
-    page_title="Lettuce QR Verifier", page_icon="🥬", layout="centered"
+    page_title="Lettuce QR Verifier", layout="centered"
 )
 
-st.title("🥬 Lettuce Blockchain QR Verification")
+st.title("Lettuce Blockchain QR Verification")
 st.write(
     """
 Imagine this app running in the background at a grocery store.
 
-1. The QR code on the lettuce bag is scanned (you upload a photo here).  
+1. The QR code on the bag of lettuce is scanned (you upload a photo here).  
 2. The QR contains a hidden hash value.  
 3. The system compares it with the **official blockchain hash** for this batch.  
 4. If it matches → the lettuce is SAFE and its full journey is shown.  
