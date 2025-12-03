@@ -1,110 +1,160 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-from pyzbar import pyzbar
+from PIL import Image
 import cv2
-import threading
+import numpy as np
 
-st.set_page_config(page_title="Lettuce Verification", layout="centered")
+# ---------------------------------------
+# OFFICIAL BLOCKCHAIN HASH (Block 4)
+# ---------------------------------------
+OFFICIAL_HASH = "0006a93cf74a54a5709f041c460dad2ca82b0d50d93eca11a76efc46fede8fed"
 
-st.title(" Lettuce Verification System")
-st.write("Scan the QR code on your lettuce to verify authenticity.")
-
-# -------------------------------------------------------
-# OFFICIAL HASH + BLOCKCHAIN SUPPLY-CHAIN RECORD
-# -------------------------------------------------------
-official_hash = "000ab71c09bc7950e9782767cb7a3c3b1e4168cd198224d6ec8491e47d2a1541"
-
-supply_chain_data = {
-    "Harvest": {
-        "Location": "Yuma, Arizona – Field 7B",
-        "DateTime": "2025-01-05 06:45 AM",
-        "WorkerID": "H-203"
+# ---------------------------------------
+# SUPPLY-CHAIN BLOCK SUMMARIES
+# ---------------------------------------
+BLOCKS = [
+    {
+        "stage": "Harvest",
+        "details": {
+            "Location": "Yuma, Arizona – Field 7B",
+            "Date & Time": "2025-01-05 06:45 AM",
+            "Worker ID": "H-203",
+        },
     },
-    "Washing & Cleaning": {
-        "Facility": "Salinas Wash Unit 3",
-        "WashTemp": "3°C",
-        "DateTime": "2025-01-05 07:20 AM",
-        "SupervisorID": "W-87"
+    {
+        "stage": "Washing & Cleaning",
+        "details": {
+            "Facility": "Salinas Wash Unit 3",
+            "Wash Temperature": "3°C",
+            "Date & Time": "2025-01-05 07:20 AM",
+            "Supervisor ID": "W-87",
+        },
     },
-    "Packaging": {
-        "Facility": "Zone A Vacuum Pack",
-        "PackType": "Triple-Wash Ready-to-Eat",
-        "DateTime": "2025-01-05 08:10 AM",
-        "MachineID": "PKG-442"
+    {
+        "stage": "Packaging",
+        "details": {
+            "Facility": "Zone A Vacuum Pack",
+            "Pack Type": "Triple-Wash Ready-to-Eat",
+            "Date & Time": "2025-01-05 08:10 AM",
+            "Machine ID": "PKG-442",
+        },
     },
-    "Cold Chain Transport": {
-        "TruckID": "TRK-5562",
-        "DispatchTemp": "3°C",
-        "From": "Salinas Packaging Center",
-        "To": "Dallas Distribution Center",
-        "DateTime": "2025-01-05 10:30 AM"
+    {
+        "stage": "Cold Chain Transport",
+        "details": {
+            "Truck ID": "TRK-5562",
+            "Dispatch Temperature": "3°C",
+            "Route": "Salinas Packaging Center → Dallas Distribution Center",
+            "Date & Time": "2025-01-05 10:30 AM",
+        },
     },
-    "Walmart Store Arrival": {
-        "Store": "Walmart Supercenter #451, Aisle 3",
-        "ReceivedTemp": "4°C",
-        "DateTime": "2025-01-06 06:10 AM",
-        "StaffID": "RCV-98"
-    }
-}
-
-# -------------------------------------------------------
-# QR SCANNER USING WEBCAM
-# -------------------------------------------------------
-decoded_qr = st.empty()
-
-class QRScanner(VideoTransformerBase):
-    def __init__(self):
-        self.qr_data = None
-        self.lock = threading.Lock()
-
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        decoded = pyzbar.decode(img)
-
-        with self.lock:
-            if decoded:
-                self.qr_data = decoded[0].data.decode("utf-8")
-                cv2.putText(img, "QR Detected!", (20, 40),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 3)
-
-        return img
+    {
+        "stage": "Walmart Store Arrival",
+        "details": {
+            "Store": "Walmart Supercenter #451, Aisle 3",
+            "Received Temperature": "4°C",
+            "Date & Time": "2025-01-06 06:10 AM",
+            "Staff ID": "RCV-98",
+        },
+    },
+]
 
 
-ctx = webrtc_streamer(
-    key="example",
-    video_transformer_factory=QRScanner,
-    media_stream_constraints={"video": True, "audio": False},
+# ---------------------------------------
+# Helper: decode QR from a PIL image using OpenCV
+# ---------------------------------------
+def decode_qr_from_pil(pil_image: Image.Image) -> str | None:
+    """
+    Takes a PIL image, converts it to OpenCV format,
+    and tries to decode a QR code using OpenCV's QRCodeDetector.
+    Returns the decoded string or None if nothing is found.
+    """
+    # PIL (RGB) -> NumPy array -> BGR for OpenCV
+    np_img = np.array(pil_image.convert("RGB"))
+    cv_img = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
+
+    detector = cv2.QRCodeDetector()
+    data, points, _ = detector.detectAndDecode(cv_img)
+
+    if points is not None and data:
+        return data.strip()
+    return None
+
+
+# ---------------------------------------
+# STREAMLIT UI
+# ---------------------------------------
+st.set_page_config(
+    page_title="Lettuce QR Verifier", page_icon="🥬", layout="centered"
 )
 
-st.write("Point your lettuce QR code at the camera...")
+st.title("🥬 Lettuce Blockchain QR Verification")
+st.write(
+    """
+Imagine this app running in the background at a grocery store.
 
-# -------------------------------------------------------
+1. The QR code on the lettuce bag is scanned (you upload a photo here).  
+2. The QR contains a hidden hash value.  
+3. The system compares it with the **official blockchain hash** for this batch.  
+4. If it matches → the lettuce is SAFE and its full journey is shown.  
+   If not → the lettuce is flagged as TAMPERED.
+"""
+)
+
+uploaded_file = st.file_uploader(
+    "Upload a photo of the lettuce QR code (PNG/JPG):",
+    type=["png", "jpg", "jpeg"],
+)
+
+scanned_hash = None
+
+if uploaded_file is not None:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded QR code", use_column_width=True)
+
+    scanned_hash = decode_qr_from_pil(image)
+
+    if scanned_hash:
+        st.info(f"Scanned value from QR: `{scanned_hash}`")
+    else:
+        st.error(
+            "No QR code could be decoded from this image. "
+            "Try a clearer or closer picture of the QR."
+        )
+
+
+# ---------------------------------------
 # VERIFICATION LOGIC
-# -------------------------------------------------------
-if ctx.video_transformer:
-    qr_value = ctx.video_transformer.qr_data
+# ---------------------------------------
+if scanned_hash:
+    if scanned_hash == OFFICIAL_HASH:
+        # SAFE CASE
+        st.success(
+            "✔ Your lettuce is SAFE – it matches the official blockchain record."
+        )
+        st.write("---")
+        st.subheader("📦 Brief Supply-Chain Journey (All Blocks Valid)")
 
-    if qr_value:
-        st.success("QR scanned successfully!")
-        st.write(f"**Scanned Hash:** `{qr_value}`")
+        for block in BLOCKS:
+            st.markdown(f"### 🟢 {block['stage']}")
+            for key, value in block["details"].items():
+                st.markdown(f"**{key}:** {value}")
+            st.write("")
 
-        if qr_value == official_hash:
-            # SAFE LETTUCE
-            st.success("✔ SAFE – Your lettuce is authentic and untampered.")
-            st.markdown("---")
-            st.subheader("📦 Full Traceability Record")
-
-            for stage, details in supply_chain_data.items():
-                st.markdown(f"### 🟢 {stage}")
-                for key, value in details.items():
-                    st.markdown(f"**{key}:** {value}")
-                st.write("")
-
-        else:
-            # TAMPERED LETTUCE
-            st.error("❗ TAMPERED – Hash mismatch detected!")
-            st.write("""
-            This lettuce does **NOT** match the official blockchain record.
-            It may have been altered, repackaged, or come from an unsafe batch.  
-            Please do **NOT** consume this product.
-            """)
+        st.caption(
+            "If any block (harvest, washing, packaging, transport, or store arrival) "
+            "were secretly changed, the final hash would change and this QR check would fail."
+        )
+    else:
+        # TAMPERED CASE
+        st.error(
+            "❗ WARNING: Lettuce is TAMPERED – QR hash does not match the official record."
+        )
+        st.write(
+            """
+This product does **not** match the blockchain record for batch `LETTUCE001`.  
+It may have been altered, repackaged, or come from an unsafe batch.  
+Please **do not consume** this lettuce and report it to store staff.
+"""
+        )
+else:
+    st.info("Upload a QR code image to verify your lettuce.")
