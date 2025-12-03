@@ -15,7 +15,7 @@ BLOCKS = [
     {
         "stage": "Harvest",
         "details": {
-            "Location": "Yuma, Arizona – Field 7B",
+            "Location": "NFREC, Quincy – Field 7B",
             "Date & Time": "2025-01-05 06:45 AM",
             "Worker ID": "H-203",
         },
@@ -43,7 +43,7 @@ BLOCKS = [
         "details": {
             "Truck ID": "TRK-5562",
             "Dispatch Temperature": "3°C",
-            "Route": "Salinas Packaging Center → Dallas Distribution Center",
+            "Route": "Quincy Packaging Center → Tallahassee Distribution Center",
             "Date & Time": "2025-01-05 10:30 AM",
         },
     },
@@ -135,7 +135,7 @@ if scanned_hash:
         st.subheader("📦 Brief Supply-Chain Journey (All Blocks Valid)")
 
         for block in BLOCKS:
-            st.markdown(f"### 🟢 {block['stage']}")
+            st.markdown(f"### {block['stage']}")
             for key, value in block["details"].items():
                 st.markdown(f"**{key}:** {value}")
             st.write("")
