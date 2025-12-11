@@ -129,10 +129,10 @@ if scanned_hash:
     if scanned_hash == OFFICIAL_HASH:
         # SAFE CASE
         st.success(
-            "✔ Your lettuce is SAFE – it matches the official blockchain record."
+            "Your lettuce is SAFE – it matches the official blockchain record."
         )
         st.write("---")
-        st.subheader("📦 Brief Supply-Chain Journey (All Blocks Valid)")
+        st.subheader(" Brief Supply-Chain Journey (All Blocks Valid)")
 
         for block in BLOCKS:
             st.markdown(f"### {block['stage']}")
@@ -147,7 +147,7 @@ if scanned_hash:
     else:
         # TAMPERED CASE
         st.error(
-            "❗ WARNING: Lettuce is TAMPERED – QR hash does not match the official record."
+            " WARNING: Lettuce is TAMPERED – QR hash does not match the official record."
         )
         st.write(
             """
